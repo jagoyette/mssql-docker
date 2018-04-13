@@ -24,7 +24,7 @@ if($ACCEPT_EULA -ne "Y" -And $ACCEPT_EULA -ne "y")
 
 # start the service
 Write-Verbose "Starting SQL Server"
-start-service MSSQL`$SQLEXPRESS
+start-service MSSQL`$SIDEXIS_SQL
 
 if($sa_password -eq "_") {
     $secretPath = $env:sa_password_path
@@ -40,7 +40,7 @@ if($sa_password -ne "_")
 {
     Write-Verbose "Changing SA login credentials"
     $sqlcmd = "ALTER LOGIN sa with password=" +"'" + $sa_password + "'" + ";ALTER LOGIN sa ENABLE;"
-    & sqlcmd -Q $sqlcmd
+    & sqlcmd -S localhost\SIDEXIS_SQL,42916 -Q $sqlcmd
 }
 
 $attach_dbs_cleaned = $attach_dbs.TrimStart('\\').TrimEnd('\\')
@@ -63,7 +63,7 @@ if ($null -ne $dbs -And $dbs.Length -gt 0)
         $sqlcmd = "IF EXISTS (SELECT 1 FROM SYS.DATABASES WHERE NAME = '" + $($db.dbName) + "') BEGIN EXEC sp_detach_db [$($db.dbName)] END;CREATE DATABASE [$($db.dbName)] ON $($files) FOR ATTACH;"
 
         Write-Verbose "Invoke-Sqlcmd -Query $($sqlcmd)"
-        & sqlcmd -Q $sqlcmd
+        & sqlcmd -S localhost\SIDEXIS_SQL,42916 -Q $sqlcmd
     }
 }
 
