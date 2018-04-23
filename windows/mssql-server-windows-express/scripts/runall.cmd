@@ -2,13 +2,12 @@
 @ECHO OFF
 
 if [%1]==[] GOTO :print_usage
-if [%2]==[] GOTO :print_usage
 
 SET SCRIPTS_PATH=%~dp0
 set CONTAINER_ID=%1%
-set SQL_SERVER=%2%
+set SQL_SERVER="localhost\SIDEXIS_SQL,42916"
 
-echo Provisioning container %CONTAINER_ID% using SQL %SQL_SERVER%
+echo Provisioning container %CONTAINER_ID%
 
 echo Copying scripts
 docker cp %SCRIPTS_PATH% %CONTAINER_ID%:C:\scripts
