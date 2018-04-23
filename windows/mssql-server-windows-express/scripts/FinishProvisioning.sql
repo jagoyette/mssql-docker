@@ -1,6 +1,9 @@
 USE [SIDEXIS]
 GO
 
+SET QUOTED_IDENTIFIER ON
+SET ANSI_NULLS ON
+
 INSERT INTO [dbo].[ProvisioningJob]
            ([Id]
            ,[PackageId]
