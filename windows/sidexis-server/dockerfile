@@ -1,4 +1,4 @@
-FROM microsoft/windowsservercore
+FROM microsoft/dotnet-framework
 
 LABEL maintainer "John Goyette"
 
