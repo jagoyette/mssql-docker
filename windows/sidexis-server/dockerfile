@@ -1,28 +1,49 @@
-FROM microsoft/dotnet-framework
+# we start with an image containing dotnet v3.5 since this is easier than installing v3.5
+FROM microsoft/dotnet-framework:3.5
 
 LABEL maintainer "John Goyette"
 
+# default shell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Install all of our dependencies
+
+# Install .NET 4.7.1
+ADD "https://download.microsoft.com/download/9/E/6/9E63300C-0941-4B45-A0EC-0008F96DD480/NDP471-KB4033342-x86-x64-AllOS-ENU.exe" /dotnet-framework-installer.exe
+RUN  /dotnet-framework-installer.exe /q | Out-Null; rm /dotnet-framework-installer.exe
+
+# ngen .NET Fx
+RUN set COMPLUS_NGenProtectedProcess_FeatureEnabled=0
+RUN \Windows\Microsoft.NET\Framework64\v4.0.30319\ngen update
+RUN \Windows\Microsoft.NET\Framework\v4.0.30319\ngen update
 
 # VC 2010 SP1 x64
 ADD https://download.microsoft.com/download/A/8/0/A80747C3-41BD-45DF-B505-E9710D2744E0/vcredist_x64.exe /vcredist_x64.exe
-RUN C:\vcredist_x64.exe /quiet /install
-RUN rm C:\vcredist_x64.exe
+RUN /vcredist_x64.exe /quiet /install | Out-Null; rm /vcredist_x64.exe
+
+# VC 2010 SP1 x86
+ADD https://download.microsoft.com/download/C/6/D/C6D0FD4E-9E53-4897-9B91-836EBA2AACD3/vcredist_x86.exe /vcredist_x86.exe
+RUN /vcredist_x86.exe /quiet /install | Out-Null; rm /vcredist_x86.exe
 
 # VC 2013 x64
-ADD http://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x64.exe  /vcredist_x64.exe
-RUN C:\vcredist_x64.exe /quiet /install
-RUN rm C:\vcredist_x64.exe
+ADD http://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x64.exe /vcredist_x64.exe
+RUN /vcredist_x64.exe /quiet /install | Out-Null; rm /vcredist_x64.exe
+
+# VC 2013 x86
+ADD http://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x86.exe /vcredist_x86.exe
+RUN /vcredist_x86.exe /quiet /install | Out-Null; rm /vcredist_x86.exe
 
 # VC 2015 x64
-ADD https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x64.exe  /vcredist_x64.exe
-RUN C:\vcredist_x64.exe /quiet /install
-RUN rm C:\vcredist_x64.exe
+ADD https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x64.exe /vcredist_x64.exe
+RUN /vcredist_x64.exe /quiet /install | Out-Null; rm /vcredist_x64.exe
+
+# VC 2015 x86
+ADD https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe /vcredist_x86.exe
+RUN /vcredist_x86.exe /quiet /install | Out-Null; rm /vcredist_x86.exe
 
 # MSXML 4.0 SP3 x64
 ADD https://download.microsoft.com/download/A/7/6/A7611FFC-4F68-4FB1-A931-95882EC013FC/msxml4-KB2758694-enu.exe /msxml4-KB2758694-enu.exe
-RUN C:\msxml4-KB2758694-enu.exe /quiet
-RUN rm C:\msxml4-KB2758694-enu.exe
+RUN /msxml4-KB2758694-enu.exe /quiet | Out-Null; rm /msxml4-KB2758694-enu.exe
 
 # Copy binaries
 COPY ./Export /SIDEXIS4
