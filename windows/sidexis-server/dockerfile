@@ -1,29 +1,38 @@
-# we start with an image containing dotnet v3.5 since this is easier than installing v3.5
-FROM microsoft/dotnet-framework:3.5
-
+# escape=`
+FROM microsoft/dotnet-framework:4.7.1-windowsservercore-ltsc2016
 LABEL maintainer "John Goyette"
+
+# Install .NET Fx 3.5
+RUN powershell -Command `
+        $ErrorActionPreference = 'Stop'; `
+        $ProgressPreference = 'SilentlyContinue'; `
+        Invoke-WebRequest `
+            -UseBasicParsing `
+            -Uri "https://dotnetbinaries.blob.core.windows.net/dockerassets/microsoft-windows-netfx3-ltsc2016.zip" `
+            -OutFile microsoft-windows-netfx3.zip; `
+        Expand-Archive microsoft-windows-netfx3.zip; `
+        Remove-Item -Force microsoft-windows-netfx3.zip; `
+        Add-WindowsPackage -Online -PackagePath .\microsoft-windows-netfx3\microsoft-windows-netfx3-ondemand-package.cab; `
+        Remove-Item -Force -Recurse microsoft-windows-netfx3
+
+# Apply latest patch
+RUN powershell -Command `
+        $ErrorActionPreference = 'Stop'; `
+        $ProgressPreference = 'SilentlyContinue'; `
+        Invoke-WebRequest `
+            -UseBasicParsing `
+            -Uri "http://download.windowsupdate.com/c/msdownload/update/software/secu/2018/04/windows10.0-kb4093119-x64_553b6ac77ec6100784cdf1947b3fb83403aa5d1c.msu" `
+            -OutFile patch.msu; `
+        New-Item -Type Directory patch; `
+        Start-Process expand -ArgumentList 'patch.msu', 'patch', '-F:*' -NoNewWindow -Wait; `
+        Remove-Item -Force patch.msu; `
+        Add-WindowsPackage -Online -PackagePath C:\patch\Windows10.0-KB4093119-x64.cab; `
+        Remove-Item -Force -Recurse \patch
 
 # default shell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # Install all of our dependencies
-
-# Install .NET 4.7.1
-ADD "https://download.microsoft.com/download/9/E/6/9E63300C-0941-4B45-A0EC-0008F96DD480/NDP471-KB4033342-x86-x64-AllOS-ENU.exe" /dotnet-framework-installer.exe
-RUN  /dotnet-framework-installer.exe /q | Out-Null; rm /dotnet-framework-installer.exe
-
-# Apply latest patch
-ADD "http://download.windowsupdate.com/c/msdownload/update/software/secu/2018/04/windows10.0-kb4093119-x64_553b6ac77ec6100784cdf1947b3fb83403aa5d1c.msu" /patch.msu
-RUN New-Item -Type Directory patch
-RUN Start-Process expand -ArgumentList 'patch.msu', 'patch', '-F:*' -NoNewWindow -Wait
-RUN Remove-Item -Force patch.msu
-RUN Add-WindowsPackage -Online -PackagePath C:\patch\Windows10.0-KB4093119-x64.cab
-RUN Remove-Item -Force -Recurse \patch
-
-# ngen .NET Fx
-RUN set COMPLUS_NGenProtectedProcess_FeatureEnabled=0
-RUN \Windows\Microsoft.NET\Framework64\v4.0.30319\ngen update
-RUN \Windows\Microsoft.NET\Framework\v4.0.30319\ngen update
 
 # VC 2010 SP1 x64
 ADD https://download.microsoft.com/download/A/8/0/A80747C3-41BD-45DF-B505-E9710D2744E0/vcredist_x64.exe /vcredist_x64.exe
@@ -56,6 +65,27 @@ RUN /msxml4-KB2758694-enu.exe /quiet | Out-Null; rm /msxml4-KB2758694-enu.exe
 # Copy binaries
 COPY ./Export /SIDEXIS4
 WORKDIR /SIDEXIS4
+
+# install certificate
+COPY ./SSL.pfx /SSL.pfx
+RUN Import-PfxCertificate -FilePath C:\SSL.pfx `
+        -CertStoreLocation Cert:\LocalMachine\My `
+        -Password (ConvertTo-SecureString -String "Sidexis3G" -Force -AsPlainText)
+
+RUN netsh http add sslcert ipport=0.0.0.0:42928 certhash=c58bafd7236a4ed7540f532721be7c0e2921167b appid='{00112233-4455-6677-8899-AABBCCDDEEFF}'
+RUN netsh http add sslcert ipport=0.0.0.0:42929 certhash=c58bafd7236a4ed7540f532721be7c0e2921167b appid='{00112233-4455-6677-8899-AABBCCDDEEFF}'
+
+# RUN Add-NetIPHttpsCertBinding -IpPort '"0.0.0.0:42928"' `
+#         -CertificateHash '"c58bafd7236a4ed7540f532721be7c0e2921167"' `
+#         -CertificateStoreName '"My"' `
+#         -ApplicationId '"{00112233-4455-6677-8899-AABBCCDDEEFF}"' `
+#         -NullEncryption $false
+
+# RUN Add-NetIPHttpsCertBinding -IpPort '"0.0.0.0:42929"' `
+#         -CertificateHash '"c58bafd7236a4ed7540f532721be7c0e2921167"' `
+#         -CertificateStoreName '"My"' `
+#         -ApplicationId '"{00112233-4455-6677-8899-AABBCCDDEEFF}"' `
+#         -NullEncryption $false
 
 EXPOSE 42927 42928 42929
 
